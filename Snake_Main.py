@@ -82,7 +82,7 @@ class Position():
 class Agent(object):
     SHUTDOWN_TIMEOUT = 60 # seconds until policy is considered unresponsive
 
-    def __init__(self, id, policy, policy_args, board_size, logq, game_duration, score_scope):
+    def __init__(self, id, policy, policy_args, board_size, logq, game_duration, score_scope, adversaries_ids, fruits_ids):
         """
         Construct a new player
         :param id: the player id (the value of the player positions in the board
@@ -105,7 +105,7 @@ class Agent(object):
         self.aq = mp.Queue()
         self.mq = mp.Queue()
         self.logq = logq
-        self.policy = policy(policy_args, board_size, self.sq, self.aq, self.mq, logq, id, game_duration, score_scope)
+        self.policy = policy(policy_args, board_size, self.sq, self.aq, self.mq, logq, id, game_duration, score_scope, adversaries_ids, fruits_ids)
         self.policy.daemon = True
         self.policy.start()
 
@@ -212,21 +212,30 @@ class Game(object):
         self.logger.start()
 
         # initialize the board:
-        self.item_count = 0
+        # self.item_count = 0
         # self.board = EMPTY_CELL_VAL * np.ones(self.board_size, dtype=int)
         self.previous_board = None
 
         # initialize players:
         self.rewards, self.players, self.scores, self.directions, self.actions, self.growing, self.size, self.previous_heads = \
             [], [], [], [], [], [], [], []
+
+        snakes_ids = range(len(self.policies))
+
         for i, (policy, pargs) in enumerate(self.policies):
+            color = pargs['color'] if 'color' in pargs else SN_COLOR
+            player_size, growing, direction = self.init_player(i, color)
+
+
             self.rewards.append(0)
             self.actions.append(None)
             self.previous_heads.append(None)
             self.scores.append([0])
-            self.players.append(Agent(i, policy, pargs, self.board_size, self.logq, self.game_duration, self.score_scope))
+            adversaries = list(snakes_ids)
+            adversaries.remove(i)
+            self.players.append(Agent(i, policy, pargs, self.board_size, self.logq, self.game_duration, self.score_scope, adversaries, self.game_gui.get_fruit_types()))
             color = pargs['color'] if 'color' in pargs else SN_COLOR
-            player_size, growing, direction = self.init_player(i, color)
+            # player_size, growing, direction = self.init_player(i, color)
             self.size.append(player_size)
             self.growing.append(growing)
             self.directions.append((direction))
@@ -248,7 +257,7 @@ class Game(object):
         dir = np.random.choice(list(Policy.Policy.TURNS.keys()))
         shape = (1, 3) if dir in ['W', 'E'] else (3, 1)
         first = self.game_gui.get_empty_slot(shape)
-        sec = self.game_gui.move_step(dir, first[0], first[1])
+        sec = self.game_gui.move_step(dir, first[0], first[1], self.game_gui.board_array.shape)
         assert self.game_gui.get_board_array()[sec[0], sec[1]] == EMPTY_CELL_VAL
         player_size = 2
         growing = True
@@ -343,7 +352,7 @@ class Game(object):
             action = actions[p]
             self.actions[p.id] = action
             head = self.game_gui.get_snake(p.id).get_head()
-            move_to = self.game_gui.move_step(Policy.Policy.TURNS[self.directions[p.id]][action], head[0], head[1])
+            move_to = self.game_gui.move_step(Policy.Policy.TURNS[self.directions[p.id]][action], head[0], head[1], self.game_gui.board_array.shape)
             # reset the player if he died:
             if board[move_to[0], move_to[1]] != EMPTY_CELL_VAL and board[move_to[0], move_to[1]] not in FOOD_GROWING_MAP:
                 self.game_gui.reset_player(p.id)
@@ -361,13 +370,13 @@ class Game(object):
                 if board[move_to[0], move_to[1]] in FOOD_GROWING_MAP.keys():
                     self.rewards[p.id] += FOOD_SCORE_MAP[board[move_to[0], move_to[1]]]
                     self.growing[p.id] += FOOD_GROWING_MAP[board[move_to[0], move_to[1]]]  # start growing
-                    self.item_count -= 1
+                    # self.item_count -= 1
 
                 self.move_snake(p.id, action)
                 self.scores[p.id].append(self.rewards[p.id])
 
         # update the food on the board:
-        self.item_count = self.game_gui.randomize()
+        # self.item_count = self.game_gui.randomize()
         self.round += 1
 
     def run(self):

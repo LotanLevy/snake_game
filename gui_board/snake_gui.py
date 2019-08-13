@@ -59,6 +59,15 @@ class Master(Canvas):
                 self.func_thread.start()
 
 
+    def get_adversaries_id(self, id):
+        result = list(self.snakes.keys())
+        result.remove(id)
+        return result
+
+    def get_fruit_types(self):
+        return self.fruits_types
+
+
 
 
     def clean(self):
@@ -124,9 +133,10 @@ class Master(Canvas):
     def update_score(self, id, new_value, r):
         self.score_manager.update_score(id, new_value, r)
 
-    def move_step(self, orig_dir, x, y):
+    @staticmethod
+    def move_step(orig_dir, x, y, board_size):
         new_dir = DIRECTIONS[MAIN_DIRECTION_MAP[orig_dir]]
-        rows, cols = self.board_array.shape
+        rows, cols = board_size
         return (x + new_dir[1]) % rows,  (y + new_dir[0]) % cols
 
     def get_empty_slot(self, shape=(1,3)):

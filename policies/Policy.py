@@ -49,7 +49,7 @@ class Policy(mp.Process):
     }
 
 
-    def __init__(self, policy_args, board_size, stateq, actq, modelq, logq, id, game_duration, score_scope, game):
+    def __init__(self, policy_args, board_size, stateq, actq, modelq, logq, id, game_duration, score_scope, adversaries_ids, fruits_ids):
         """
         initialize the policy.
         :param policy_args: the arguments for the specific policy to be added as members.
@@ -64,12 +64,13 @@ class Policy(mp.Process):
         """
         mp.Process.__init__(self)
         self.board_size = board_size
-        self.game = game
         self.sq = stateq
         self.aq = actq
         self.mq = modelq
         self.lq = logq
         self.id = id
+        self.adversaries_ids = adversaries_ids
+        self.fruits_ids = fruits_ids
         self.game_duration = game_duration
         self.score_scope = score_scope
         self.__dict__.update(self.cast_string_args(policy_args))

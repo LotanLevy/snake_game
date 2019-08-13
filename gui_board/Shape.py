@@ -27,6 +27,11 @@ class Shape:
                                           width=2)
             can.update_array(a, b, self.id)
 
+    def set_poly_fill(self, color):
+        # if poly exists then you can change fill
+        if self.ref:
+            self.can.itemconfig(self.ref, fill=color)
+
 
 
     def modify(self, a, b):

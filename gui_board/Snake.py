@@ -1,6 +1,7 @@
 
 from gui_board.BoardConstants import *
 from gui_board.Shape import Block
+from tkinter import Canvas
 class Snake:
     """a snake keeps track of its body parts"""
     def __init__(self, can, id, color):
@@ -32,9 +33,14 @@ class Snake:
     def start(self):
         # a,b = self.can.get_random_empty_idx()# random places with gui locations
         self.blocks = []
+        i=0
         for pos in self.positions:
+            color = self.color if i > 0 else "white"
             a, b = self.can.get_position_in_board(pos[0], pos[1])
-            self.blocks.append(Block(self.can, a, b, self.id, self.color))
+            self.blocks.append(Block(self.can, a, b, self.id, color))
+            i += 1
+
+
 
 
 
@@ -56,6 +62,8 @@ class Snake:
         a = (self.blocks[-1].x + STEP * path[0]) % WD
         b = (self.blocks[-1].y + STEP * path[1]) % HT
 
+        self.blocks[-1].set_poly_fill(self.color)
+
         value_in_cell = self.can.get_board_cell_value(a, b)
         if value_in_cell in self.can.fruits.keys():  # check if we find food
             self.can.fruits[int(value_in_cell)].delete()
@@ -65,6 +73,13 @@ class Snake:
         else:
             self.blocks[0].modify(a, b)
             self.blocks = self.blocks[1:] + [self.blocks[0]]
+
+        self.blocks[-1].set_poly_fill('white')
+
+
+
+
+
 
     def get_head(self):
         return self.can.get_position_in_array(self.blocks[-1].x, self.blocks[-1].y)
