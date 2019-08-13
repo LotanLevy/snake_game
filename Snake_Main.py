@@ -305,7 +305,6 @@ class Game(object):
         else:
             growing = False
 
-        print(growing)
 
 
         # move the head:
