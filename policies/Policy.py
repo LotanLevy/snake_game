@@ -3,7 +3,7 @@ import multiprocessing as mp
 import traceback
 
 import numpy as np
-np.set_printoptions(threshold=np.nan)
+np.set_printoptions(threshold=sys.maxsize)
 
 POLICIES = {}
 
