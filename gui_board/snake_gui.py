@@ -36,6 +36,8 @@ class Master(Canvas):
         self.random_food_prob = random_food_prob
         self.max_item_density = max_item_density
         self.food_ratio = food_ratio
+        self.rewards = [0] # add score to the maximum score value
+        self.scores = [self.rewards]
 
     def join(self):
         if self.func_thread is not None:
@@ -129,16 +131,7 @@ class Master(Canvas):
 
     def move_sneak(self, id, action):
         snake = self.get_snake(id)
-        growing = True
-        if snake.growing > 0:
-            snake.growing -= 1
-        else:
-            growing = False
-        new_direction = snake.direction
-        if action != 'F':
-            new_direction = TURNS[new_direction][action]
-        self.snakes[id].change_direction(new_direction, growing)
-
+        snake.move_sneak(action)
 
 
     def update_score(self, id, new_value, r):

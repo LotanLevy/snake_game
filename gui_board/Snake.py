@@ -1,6 +1,7 @@
 
 from gui_board.BoardConstants import *
 from gui_board.Shape import Block
+from Constants import *
 from tkinter import Canvas
 class Snake:
     """a snake keeps track of its body parts"""
@@ -54,7 +55,18 @@ class Snake:
         if self.score_manager is not None:
             self.score_manager.reset_score(self.id)
 
-    def move(self, path, growing):
+    def move_sneak(self, action):
+        growing = True
+        if self.growing > 0:
+            self.growing -= 1
+        else:
+            growing = False
+        new_direction = self.direction
+        if action != 'F':
+            new_direction = TURNS[new_direction][action]
+        self.change_direction(new_direction, growing)
+
+    def _move(self, path, growing):
         """an elementary step consisting of putting the tail of the snake in the first position"""
         a = (self.blocks[-1].x + STEP * path[0]) % WD
         b = (self.blocks[-1].y + STEP * path[1]) % HT
@@ -118,7 +130,7 @@ class Movement:
     def begin(self, growing):
         """start the perpetual motion"""
         if self.flag > 0:
-            self.sneak.move(DIRECTIONS[self.sneak.direction], growing)
+            self.sneak._move(DIRECTIONS[self.sneak.direction], growing)
 
 
     def stop(self):

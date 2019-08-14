@@ -4,6 +4,7 @@ import queue
 import gzip
 from gui_board.BoardConstants import *
 from Constants import *
+from Agent import Agent
 
 from config import parse_args
 
@@ -14,26 +15,8 @@ from policies import Policy
 
 from gui_board.snake_gui import init_board_gui, start_board
 from gui_board.Snake import Snake
-
 import time
-
-
 from save_data import csvWriter
-
-
-
-
-
-
-
-
-def clear_q(q):
-    """
-    given a queue, empty it.
-    """
-    while not q.empty():
-        try: q.get_nowait()
-        except queue.Empty: break
 
 
 def days_hours_minutes_seconds(td):
@@ -68,104 +51,18 @@ class Position():
                         self.board_size)
 
     def move(self, dir):
+        step = (DIRECTIONS[dir][1], DIRECTIONS[dir][1])
+        return self + step
 
-        # new_move = self.gui.move_step(dir, self.pos[0], self.pos[1])
-        if dir == 'E': return self + (0,1)
-        if dir == 'W': return self + (0,-1)
-        if dir == 'N': return self + (-1, 0)
-        if dir == 'S': return self + (1, 0)
-        raise ValueError('unrecognized direction')
+        # DIRECTIONS = {"N": [0, -1], 'S': [0, 1], 'E': [1, 0], "W": [-1, 0]}
 
-
-
-
-class Agent(object):
-    SHUTDOWN_TIMEOUT = 60 # seconds until policy is considered unresponsive
-
-    def __init__(self, id, policy, policy_args, board_size, logq, game_duration, score_scope, adversaries_ids, fruits_ids):
-        """
-        Construct a new player
-        :param id: the player id (the value of the player positions in the board
-        :param policy: the class of the policy to be used by the player
-        :param policy_args: string (name, value) pairs that the policy can parse to arguments
-        :param board_size: the size of the game board (height, width)
-        :param logq: a queue for message logging through the game
-        :param game_duration: the expected duration of the game in turns
-        :param score_scope: the amount of rounds at the end of the game which count towards the score
-        """
-
-        self.id = id
-        self.len = 0
-        self.policy_class = policy
-        self.round = 0
-        self.unresponsive_count = 0
-        self.too_slow = False
-
-        self.sq = mp.Queue()
-        self.aq = mp.Queue()
-        self.mq = mp.Queue()
-        self.logq = logq
-        self.policy = policy(policy_args, board_size, self.sq, self.aq, self.mq, logq, id, game_duration, score_scope, adversaries_ids, fruits_ids)
-        self.policy.daemon = True
-        self.policy.start()
+        # if dir == 'E': return self + (0,1)
+        # if dir == 'W': return self + (0,-1)
+        # if dir == 'N': return self + (-1, 0)
+        # if dir == 'S': return self + (1, 0)
+        # raise ValueError('unrecognized direction')
 
 
-    def handle_state(self, round, prev_state, prev_action, reward, new_state):
-        """
-        given the new state and previous state-action-reward, pass the information
-        to the policy for action selection and/or learning.
-        """
-
-        self.round = round
-        clear_q(self.sq)  # remove previous states from queue if they weren't handled yet
-        self.sq.put((round, prev_state, prev_action, reward, new_state, self.too_slow))
-
-
-    def get_action(self):
-        """
-        get waiting action from the policy's action queue. if there is no action
-        in the queue, pick 'F' and log the unresponsiveness error.
-        :return: action from {'R','L','F'}.
-        """
-        try:
-            round, action = self.aq.get_nowait()
-            if round != self.round:
-                raise queue.Empty()
-            elif action not in Policy.Policy.ACTIONS:
-                self.logq.put((str(self.id), "ERROR", ILLEGAL_MOVE + str(action)))
-                raise queue.Empty()
-            else:
-                self.too_slow = False
-                self.unresponsive_count = 0
-
-        except queue.Empty:
-            self.unresponsive_count += 1
-            action = Policy.Policy.DEFAULT_ACTION
-            if self.unresponsive_count <= UNRESPONSIVE_POLICY_THRESHOLD:
-                self.logq.put((str(self.id), "ERROR", NO_RESPONSE + str(self.unresponsive_count) + " in a row!"))
-            else:
-                self.logq.put((str(self.id), "ERROR", UNRESPONSIVE_PLAYER))
-                self.unresponsive_count = TOO_SLOW_POLICY_THRESHOLD
-            if self.unresponsive_count > TOO_SLOW_POLICY_THRESHOLD:
-                self.too_slow = True
-
-        clear_q(self.aq)  # clear the queue from unhandled actions
-        return action
-
-
-    def shutdown(self):
-        """
-        shutdown the agent in the end of the game. the function asks the agent
-        to save it's model and returns the saved model, which needs to be a data
-        structure that can be pickled.
-        :return: the model data structure.
-        """
-
-        clear_q(self.sq)
-        clear_q(self.aq)
-        self.sq.put(None)  # shutdown signal
-        self.policy.join()
-        return
 
 
 class Game(object):
@@ -234,19 +131,6 @@ class Game(object):
             adversaries = list(snakes_ids)
             adversaries.remove(i)
             self.players.append(Agent(i, policy, pargs, self.board_size, self.logq, self.game_duration, self.score_scope, adversaries, self.game_gui.get_fruit_types()))
-            color = pargs['color'] if 'color' in pargs else SN_COLOR
-            # player_size, growing, direction = self.init_player(i, color)
-            # self.size.append(player_size)
-            # self.growing.append(growing)
-            # self.directions.append((direction))
-
-
-
-
-
-
-
-
         # wait for player initialization (Keras loading time):
         time.sleep(self.player_init_time)
 
@@ -268,55 +152,6 @@ class Game(object):
         self.game_gui.add_sneak(snake_gui)
         if reset:
             snake_gui.start()
-
-
-
-    # def reset_player(self, id):
-    #
-    #     positions = np.array(np.where(self.game_gui.get_board_array() == id))
-    #     self.game_gui.delete_snake(id)
-    #
-    #     # turn parts of the corpse into food:
-    #     food_n = np.random.binomial(positions.shape[1], self.food_ratio)
-    #     if self.item_count + food_n < self.max_item_density * np.prod(self.board_size):
-    #         subidx = np.array(np.random.choice(positions.shape[1], size=food_n, replace=False))
-    #         if len(subidx) > 0:
-    #             randfood = np.random.choice(list(FOOD_GROWING_MAP.keys()), food_n)
-    #             for i,idx in enumerate(subidx):
-    #                 # self.board[positions[0,idx],positions[1,idx]] = randfood[i]
-    #                 self.game_gui.add_fruit(positions[0,idx], positions[1,idx], randfood[i])
-    #             self.item_count += food_n
-    #
-    #     return self.init_player(id, self.game_gui.get_sneak_color(id), True)
-
-
-    # def randomize(self):
-    #     if np.random.rand(1) < self.random_food_prob:
-    #         if self.item_count < self.max_item_density * np.prod(self.board_size):
-    #             randfood = np.random.choice(list(FOOD_GROWING_MAP.keys()), 1)
-    #             pos = self.game_gui.get_empty_slot((1, 1))
-    #             self.game_gui.add_fruit(pos[0], pos[1], randfood[0])
-    #             self.item_count += 1
-
-
-    def move_snake(self, id, action):
-
-        # delete the tail if the snake isn't growing:
-        # growing = True
-        # if self.growing[id] > 0:
-        #     self.growing[id] -= 1
-        #     self.size[id] += 1
-        # else:
-        #     growing = False
-        #
-        #
-        #
-        # # move the head:
-        # if action != 'F':  # turn in the relevant direction
-        #     self.directions[id] = Policy.Policy.TURNS[self.directions[id]][action]
-
-
-        self.game_gui.move_sneak(id, action)
 
 
     def play_a_round(self):
