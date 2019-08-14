@@ -99,19 +99,22 @@ class DeepAgent(bp.Policy):
             # update object existence:
             new_direction = bp.Policy.TURNS[direction][action]
             next_position = head_pos.move(new_direction)
-            f[board[next_position[0], next_position[1]] + 1] = 1
+            x, y = next_position.pos
+            f[int(board[x, y]) + 1] = 1
             head_pos = next_position
 
             for action2 in bp.Policy.ACTIONS:
                 new_direction2 = bp.Policy.TURNS[new_direction][action2]
                 next_position2 = head_pos.move(new_direction2)
-                f[board[next_position2[0], next_position2[1]] + 12] = 1
+                x, y = next_position2.pos
+                f[int(board[x, y]) + 12] = 1
                 head_pos = next_position2
 
                 for action3 in bp.Policy.ACTIONS:
                     new_direction3 = bp.Policy.TURNS[new_direction][action3]
                     next_position3 = head_pos.move(new_direction3)
-                    f[board[next_position3[0], next_position3[1]] + 23] = 1
+                    x, y = next_position3.pos
+                    f[int(board[x, y]) + 23] = 1
 
             input[i*33: 33 + i*33] = f
 
@@ -211,7 +214,7 @@ class DeepAgent(bp.Policy):
             print("exploration")
             self.epsilon = 0
 
-        print("%d/1000000" % round)
+        print("%d/%d" % (round, self.game_duration))
         if round % 50 == 0:
             print(self.epsilon)
         return action
