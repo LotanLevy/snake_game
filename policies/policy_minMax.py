@@ -1,7 +1,7 @@
 from policies import Policy as bp
 import numpy as np
 from gui_board.snake_gui import Master
-from Snake_Main import Position
+# from Snake_Main import Position
 import Constants
 
 EPSILON = 0.001
@@ -13,6 +13,42 @@ ADVERSARY_INDEX = 1
 # FEATURES_NUM = 22
 #
 # OBJ_RANGE = np.arange(-1, 10)
+
+class Position():
+
+
+
+    def __init__(self, position, board_size):
+        self.pos = position
+        self.board_size = board_size
+
+
+    def __getitem__(self, key):
+        return self.pos[key]
+
+    def __add__(self, other):
+        return Position(((self[0] + other[0]) % self.board_size[0],
+                        (self[1] + other[1]) % self.board_size[1]),
+                        self.board_size)
+
+    def move(self, dir):
+        DIRECTIONS = {"N": [0, -1], 'S': [0, 1], 'E': [1, 0], "W": [-1, 0]}
+        step = (DIRECTIONS[dir][1], DIRECTIONS[dir][1])
+        return self + step
+
+    def __copy__(self):
+        position = Position((0, 0), board_size=self.board_size)
+        position.pos = self.pos
+        position.board_size = self.board_size
+        return position
+
+        # DIRECTIONS = {"N": [0, -1], 'S': [0, 1], 'E': [1, 0], "W": [-1, 0]}
+
+        # if dir == 'E': return self + (0,1)
+        # if dir == 'W': return self + (0,-1)
+        # if dir == 'N': return self + (-1, 0)
+        # if dir == 'S': return self + (1, 0)
+        # raise ValueError('unrecognized direction')
 
 
 class Direction():
@@ -28,12 +64,12 @@ class Minmax(bp.Policy):
     learned in class
     """
 
-    def __init__(self):
-        super().__init__()
-
     def cast_string_args(self, policy_args):
         policy_args['epsilon'] = float(policy_args['epsilon']) if 'epsilon' in policy_args else EPSILON
         return policy_args
+
+    def __init__(self):
+        super().__init__()
 
     def act(self, round, prev_state, prev_action, reward, new_state, too_slow):
         """
