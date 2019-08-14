@@ -3,7 +3,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, BatchNormalization, Convolution2D, Flatten, Dropout, LeakyReLU
 from keras.models import Model
 from keras.optimizers import Adam
-from policies import base_policy as bp
+from policies import Policy as bp
 import time
 from keras.layers import Input
 import matplotlib.pyplot as plt

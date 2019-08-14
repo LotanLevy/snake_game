@@ -4,7 +4,7 @@ from gui_board.Shape import Block
 from tkinter import Canvas
 class Snake:
     """a snake keeps track of its body parts"""
-    def __init__(self, can, id, color):
+    def __init__(self, can, id, color, growing_init):
         """initial position chosen by me"""
         self.id = id
         self.can = can
@@ -13,13 +13,14 @@ class Snake:
         self.score_manager = None
         self.color = color
         self.positions = None
+        self.growing = growing_init
 
 
     def update_score(self, score_manager):
         self.score_manager = score_manager
 
     def change_direction(self, direction, growing):
-        if direction is not None: self.direction = MAIN_DIRECTION_MAP[direction]
+        if direction is not None: self.direction = direction
         if self.direction is not None:
             self.current_movement = Movement(self, self.can, self.direction)
             self.current_movement.begin(growing)
@@ -27,20 +28,16 @@ class Snake:
     def set_positions(self, positions):
         self.positions = positions
     def set_direction(self, direction):
-        self.direction = MAIN_DIRECTION_MAP[direction]
+        self.direction = direction
 
 
     def start(self):
         # a,b = self.can.get_random_empty_idx()# random places with gui locations
         self.blocks = []
-        i=0
         for pos in self.positions:
-            color = self.color if i > 0 else "white"
             a, b = self.can.get_position_in_board(pos[0], pos[1])
-            self.blocks.append(Block(self.can, a, b, self.id, color))
-            i += 1
-
-
+            self.blocks.append(Block(self.can, a, b, self.id, self.color))
+        self.blocks[-1].set_poly_fill('white')
 
 
 

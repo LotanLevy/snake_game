@@ -212,9 +212,9 @@ class Game(object):
         self.logger.start()
 
         # initialize the board:
-        # self.item_count = 0
         # self.board = EMPTY_CELL_VAL * np.ones(self.board_size, dtype=int)
         self.previous_board = None
+        self.init_player_size = args.init_player_size
 
         # initialize players:
         self.rewards, self.players, self.scores, self.directions, self.actions, self.growing, self.size, self.previous_heads = \
@@ -224,7 +224,7 @@ class Game(object):
 
         for i, (policy, pargs) in enumerate(self.policies):
             color = pargs['color'] if 'color' in pargs else SN_COLOR
-            player_size, growing, direction = self.init_player(i, color)
+            self.init_player(i, color)
 
 
             self.rewards.append(0)
@@ -236,9 +236,9 @@ class Game(object):
             self.players.append(Agent(i, policy, pargs, self.board_size, self.logq, self.game_duration, self.score_scope, adversaries, self.game_gui.get_fruit_types()))
             color = pargs['color'] if 'color' in pargs else SN_COLOR
             # player_size, growing, direction = self.init_player(i, color)
-            self.size.append(player_size)
-            self.growing.append(growing)
-            self.directions.append((direction))
+            # self.size.append(player_size)
+            # self.growing.append(growing)
+            # self.directions.append((direction))
 
 
 
@@ -259,10 +259,8 @@ class Game(object):
         first = self.game_gui.get_empty_slot(shape)
         sec = self.game_gui.move_step(dir, first[0], first[1], self.game_gui.board_array.shape)
         assert self.game_gui.get_board_array()[sec[0], sec[1]] == EMPTY_CELL_VAL
-        player_size = 2
-        growing = True
 
-        snake_gui = Snake(self.game_gui, id,  color)
+        snake_gui = Snake(self.game_gui, id,  color, self.init_player_size - 2)
         positions = [first, sec]
 
         snake_gui.set_positions(positions)
@@ -271,9 +269,6 @@ class Game(object):
         if reset:
             snake_gui.start()
 
-
-
-        return player_size, growing, dir
 
 
     # def reset_player(self, id):
@@ -307,21 +302,21 @@ class Game(object):
     def move_snake(self, id, action):
 
         # delete the tail if the snake isn't growing:
-        growing = True
-        if self.growing[id] > 0:
-            self.growing[id] -= 1
-            self.size[id] += 1
-        else:
-            growing = False
+        # growing = True
+        # if self.growing[id] > 0:
+        #     self.growing[id] -= 1
+        #     self.size[id] += 1
+        # else:
+        #     growing = False
+        #
+        #
+        #
+        # # move the head:
+        # if action != 'F':  # turn in the relevant direction
+        #     self.directions[id] = Policy.Policy.TURNS[self.directions[id]][action]
 
 
-
-        # move the head:
-        if action != 'F':  # turn in the relevant direction
-            self.directions[id] = Policy.Policy.TURNS[self.directions[id]][action]
-
-
-        self.game_gui.move_sneak(id, self.directions[id], growing)
+        self.game_gui.move_sneak(id, action)
 
 
     def play_a_round(self):
@@ -332,8 +327,9 @@ class Game(object):
         # distribute states and rewards on previous round
         board = self.game_gui.get_board_array()
         for i, p in pperm:
-            x, y = self.game_gui.get_snake(p.id).get_head()
-            current_head = (Position((x,y), self.board_size), self.directions[p.id])
+            snake = self.game_gui.get_snake(p.id)
+            x, y = snake.get_head()
+            current_head = (Position((x,y), self.board_size), snake.direction)
             if self.previous_board is None:
                 p.handle_state(self.round, None, self.actions[p.id], self.rewards[p.id], (board, current_head))
             else:
@@ -349,17 +345,18 @@ class Game(object):
 
         # get the interactions of the players with the board:
         for _, p in pperm:
+            snake = self.game_gui.get_snake(p.id)
             action = actions[p]
             self.actions[p.id] = action
-            head = self.game_gui.get_snake(p.id).get_head()
-            move_to = self.game_gui.move_step(Policy.Policy.TURNS[self.directions[p.id]][action], head[0], head[1], self.game_gui.board_array.shape)
+            head = snake.get_head()
+            move_to = self.game_gui.move_step(Policy.Policy.TURNS[snake.direction][action], head[0], head[1], self.game_gui.board_array.shape)
             # reset the player if he died:
             if board[move_to[0], move_to[1]] != EMPTY_CELL_VAL and board[move_to[0], move_to[1]] not in FOOD_GROWING_MAP:
                 self.game_gui.reset_player(p.id)
-                player_size, growing, dir = self.init_player(p.id, self.game_gui.get_sneak_color(p.id), True)
-                self.size[p.id] = player_size
-                self.growing[p.id] = growing
-                self.directions[p.id] = dir
+                self.init_player(p.id, self.game_gui.get_sneak_color(p.id), True)
+                # self.size[p.id] = player_size
+                # self.growing[p.id] = growing
+                # self.directions[p.id] = dir
                 self.rewards[p.id] = DEATH_PENALTY
                 self.scores[p.id].append(self.rewards[p.id])
 
@@ -369,14 +366,13 @@ class Game(object):
                 self.rewards[p.id] = 0
                 if board[move_to[0], move_to[1]] in FOOD_GROWING_MAP.keys():
                     self.rewards[p.id] += FOOD_SCORE_MAP[board[move_to[0], move_to[1]]]
-                    self.growing[p.id] += FOOD_GROWING_MAP[board[move_to[0], move_to[1]]]  # start growing
-                    # self.item_count -= 1
+                    self.game_gui.get_snake(p.id).growing += FOOD_GROWING_MAP[board[move_to[0], move_to[1]]]  # start growing
 
-                self.move_snake(p.id, action)
+                self.game_gui.move_sneak(p.id, action)
                 self.scores[p.id].append(self.rewards[p.id])
 
         # update the food on the board:
-        # self.item_count = self.game_gui.randomize()
+        self.game_gui.randomize()
         self.round += 1
 
     def run(self):

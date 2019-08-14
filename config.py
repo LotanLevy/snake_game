@@ -37,6 +37,8 @@ def parse_args():
                    help='seconds to wait for agents to improve policy')
     g.add_argument('--player_init_time', '-pit', type=float, default=Constants.PLAYER_INIT_TIME,
                    help='seconds to wait for agents to initialize in the beginning of the session')
+    g.add_argument('--init_player_size', '-is', type=int, default=5, help='player length at start, minimum is 3')
+
 
     g = p.add_argument_group('Players')
     g.add_argument('--score_scope', '-s', type=int, default=1000,

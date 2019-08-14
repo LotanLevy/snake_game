@@ -127,15 +127,26 @@ class Master(Canvas):
     def delete_snake(self, id):
         self.snakes[id].delete_from_board()
 
-    def move_sneak(self, id, direction, growing):
-        self.snakes[id].change_direction(direction, growing)
+    def move_sneak(self, id, action):
+        snake = self.get_snake(id)
+        growing = True
+        if snake.growing > 0:
+            snake.growing -= 1
+        else:
+            growing = False
+        new_direction = snake.direction
+        if action != 'F':
+            new_direction = TURNS[new_direction][action]
+        self.snakes[id].change_direction(new_direction, growing)
+
+
 
     def update_score(self, id, new_value, r):
         self.score_manager.update_score(id, new_value, r)
 
     @staticmethod
     def move_step(orig_dir, x, y, board_size):
-        new_dir = DIRECTIONS[MAIN_DIRECTION_MAP[orig_dir]]
+        new_dir = DIRECTIONS[orig_dir]
         rows, cols = board_size
         return (x + new_dir[1]) % rows,  (y + new_dir[0]) % cols
 

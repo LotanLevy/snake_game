@@ -25,7 +25,9 @@ DOWN = 'Down'
 RIGHT = 'Right'
 LEFT = 'Left'
 # a dictionary to ease access to 'directions'
-DIRECTIONS = {UP: [0, -1], DOWN: [0, 1], RIGHT: [1, 0], LEFT: [-1, 0]}
+# DIRECTIONS = {UP: [0, -1], DOWN: [0, 1], RIGHT: [1, 0], LEFT: [-1, 0]}
+DIRECTIONS = {"N": [0, -1], 'S': [0, 1], 'E': [1, 0], "W": [-1, 0]}
+
 MAIN_DIRECTION_MAP = {'E':RIGHT, "W":LEFT, "N":UP, 'S':DOWN}
 AXES = {UP: 'Vertical', DOWN: 'Vertical', RIGHT: 'Horizontal', LEFT: 'Horizontal'}
 # refresh time for the perpetual motion
