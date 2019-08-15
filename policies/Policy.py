@@ -27,9 +27,6 @@ def collect_policies():
     return POLICIES
 
 
-
-
-
 class Policy(mp.Process):
     """
     The Policy class, representing the policy that an agent in the game has.

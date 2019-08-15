@@ -69,9 +69,6 @@ class Master(Canvas):
     def get_fruit_types(self):
         return self.fruits_types
 
-
-
-
     def clean(self):
         """restarting the game"""
         if self.running == 1:
@@ -83,7 +80,6 @@ class Master(Canvas):
             self.fruits = {}
             self.board_array = self.init_board_array()
 
-
     def add_sneak(self, sneak):
         self.score_manager.add_counter(sneak.id)
         self.snakes[sneak.id] = sneak
@@ -92,7 +88,6 @@ class Master(Canvas):
 
     def update_array(self, x, y, id):
         self.board_array[int(((y /PIXEL) - 1)/2)][int(((x / PIXEL)-1)/2)] = id
-
 
     def get_position_in_board(self, array_coord_x, array_coord_y):
         return PIXEL * (2 * array_coord_y + 1), PIXEL * (2 * array_coord_x + 1)
@@ -103,9 +98,6 @@ class Master(Canvas):
     def get_board_cell_value(self, x, y):
         return self.board_array[int(((y /PIXEL) - 1)/2)][int(((x / PIXEL)-1)/2)]
 
-
-
-
     def add_fruit(self, a, b, type_id):
         self.fruit_id += 1
         new_fruit = Obstacle(self, self.fruit_id, self.fruits_types[type_id][1], type_id, a, b)
@@ -113,8 +105,6 @@ class Master(Canvas):
 
     def get_snake(self, id):
         return self.snakes[id]
-
-
 
     def get_board_array(self):
         board_with_fruit_types = np.copy(self.board_array)
@@ -175,10 +165,6 @@ class Master(Canvas):
                 # self.item_count += food_n
 
 
-
-
-
-
 class Score_manager:
 
     def __init__(self, boss):
@@ -216,22 +202,14 @@ class Score_Counter:
         self.score = Label(scoreboard, textvariable=self.counter)
         self.score.grid()
 
-
-
     def set(self, new_value, r):
         score = new_value
         self.counter.set(str(score))
         self.round.set('Mean score of sneak ' +str(self.id) + " in round " + str(r))
 
-
     def delete(self):
         self.title.destroy()
         self.score.destroy()
-
-
-
-
-
 
 
 class Scores:
@@ -250,7 +228,6 @@ class Scores:
         self.counter.set('0')
 
 
-
 def init_board_gui(fruits_types, start_func, random_food_prob, max_item_density, food_ratio):
     root = Tk()
     root.title("Snake Game")
@@ -264,6 +241,7 @@ def init_board_gui(fruits_types, start_func, random_food_prob, max_item_density,
     buttons.grid(column=0, row=0)
     game.score_manager.init_score_manager()
     return root, game
+
 
 def start_board(root, game):
     root.mainloop()
