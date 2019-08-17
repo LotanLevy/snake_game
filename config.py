@@ -43,7 +43,7 @@ def parse_args():
     g = p.add_argument_group('Players')
     g.add_argument('--score_scope', '-s', type=int, default=1000,
                    help='The score is the average reward during the last score_scope rounds of the session')
-    g.add_argument('--policies', '-P', type=str, default=None,
+    g.add_argument('--policies', '-P', type=str, default='Minmax()',
                    help='a string describing the policies to be used in the game, of the form: '
                         '<policy_name>(<arg=val>,*);+.\n'
                         'e.g. MyPolicy(layer1=100,layer2=20);YourPolicy(your_params=123)')
