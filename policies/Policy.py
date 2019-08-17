@@ -2,6 +2,8 @@ import sys
 import multiprocessing as mp
 import traceback
 
+
+
 import numpy as np
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -49,7 +51,7 @@ class Policy(mp.Process):
     }
 
 
-    def __init__(self, policy_args, board_size, stateq, actq, modelq, logq, id, game_duration, score_scope, adversaries_ids, fruits_ids):
+    def __init__(self, policy_args, board_size, stateq, actq, modelq, logq, id, game_duration, score_scope, snakes):
         """
         initialize the policy.
         :param policy_args: the arguments for the specific policy to be added as members.
@@ -69,8 +71,7 @@ class Policy(mp.Process):
         self.mq = modelq
         self.lq = logq
         self.id = id
-        self.adversaries_ids = adversaries_ids
-        self.fruits_ids = fruits_ids
+        self.snakes = snakes
         self.game_duration = game_duration
         self.score_scope = score_scope
         self.__dict__.update(self.cast_string_args(policy_args))

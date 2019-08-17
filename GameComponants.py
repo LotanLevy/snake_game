@@ -1,8 +1,79 @@
 
-
+from abc import abstractmethod
+import numpy as np
+from GameConfigurations import *
 import queue
+import policies.Policy as base_policy
 import multiprocessing as mp
-from Constants import *
+
+class HasScore:
+    @abstractmethod
+    def get_score(self):
+        pass
+
+class Snake(HasScore):
+    def __init__(self, id, color, init_player_size):
+        self.id = id
+        self.color = color
+        self.direction = None
+        self.growing = 0
+        self.current_score = 0
+        self.all_scores = []
+        self.size = 0
+        self.positions = []
+        self.init_player_size = init_player_size
+        self.previous_head = None
+
+    def get_gui_representation(self):
+        return "snake {} - ({})".format(self.id, self.color)
+
+    def __str__(self):
+        return "snake {}".format(self.id)
+
+    def update_score(self, reward):
+        self.current_score = reward
+
+
+    def get_score(self):
+        return self.current_score
+
+    def get_mean_score_in_scope(self, scope_length):
+        scope = np.min([len(self.all_scores), scope_length])
+        return np.mean(self.all_scores[-scope:])
+
+    def move(self, pos, board_array):
+        self.positions.append(pos)
+        board_array[pos[0], pos[1]] = self.id
+        if not self.growing:
+            tail = self.positions[0]
+            self.positions = self.positions[1:]
+            board_array[tail[0], tail[1]] = EMPTY_BOARD_FIELD
+            return False
+        else:
+            self.growing -= 1
+            return True
+
+
+
+
+
+class Position():
+
+    def __init__(self, position, board_size):
+        self.pos = position
+        self.board_size = board_size
+
+    def __getitem__(self, key):
+        return self.pos[key]
+
+    def __add__(self, other):
+        return Position(((self[0] + other[0]) % self.board_size[0],
+                        (self[1] + other[1]) % self.board_size[1]),
+                        self.board_size)
+
+    def move(self, dir):
+        return self + DIRECTIONS[dir]
+
 
 
 
@@ -10,7 +81,7 @@ from Constants import *
 class Agent(object):
     SHUTDOWN_TIMEOUT = 60 # seconds until policy is considered unresponsive
 
-    def __init__(self, id, policy, policy_args, board_size, logq, game_duration, score_scope, adversaries_ids, fruits_ids):
+    def __init__(self, id, policy, policy_args, board_size, logq, game_duration, score_scope, snakes):
         """
         Construct a new player
         :param id: the player id (the value of the player positions in the board
@@ -32,8 +103,8 @@ class Agent(object):
         self.sq = mp.Queue()
         self.aq = mp.Queue()
         self.mq = mp.Queue()
-        self.logq = logq
-        self.policy = policy(policy_args, board_size, self.sq, self.aq, self.mq, logq, id, game_duration, score_scope, adversaries_ids, fruits_ids)
+        # self.logq = logq
+        self.policy = policy(policy_args, board_size, self.sq, self.aq, self.mq, logq, id, game_duration, score_scope, snakes)
         self.policy.daemon = True
         self.policy.start()
 
@@ -59,8 +130,8 @@ class Agent(object):
             round, action = self.aq.get_nowait()
             if round != self.round:
                 raise queue.Empty()
-            elif action not in ACTIONS:
-                self.logq.put((str(self.id), "ERROR", ILLEGAL_MOVE + str(action)))
+            elif action not in base_policy.Policy.ACTIONS:
+                # self.logq.put((str(self.id), "ERROR", ILLEGAL_MOVE + str(action)))
                 raise queue.Empty()
             else:
                 self.too_slow = False
@@ -68,13 +139,14 @@ class Agent(object):
 
         except queue.Empty:
             self.unresponsive_count += 1
-            action = DEFAULT_ACTION
-            if self.unresponsive_count <= UNRESPONSIVE_POLICY_THRESHOLD:
-                self.logq.put((str(self.id), "ERROR", NO_RESPONSE + str(self.unresponsive_count) + " in a row!"))
+            action = base_policy.Policy.DEFAULT_ACTION
+            if self.unresponsive_count <= UNRESPONSIVE_THRESHOLD:
+                pass
+                # self.logq.put((str(self.id), "ERROR", NO_RESPONSE + str(self.unresponsive_count) + " in a row!"))
             else:
-                self.logq.put((str(self.id), "ERROR", UNRESPONSIVE_PLAYER))
-                self.unresponsive_count = TOO_SLOW_POLICY_THRESHOLD
-            if self.unresponsive_count > TOO_SLOW_POLICY_THRESHOLD:
+                # self.logq.put((str(self.id), "ERROR", UNRESPONSIVE_PLAYER))
+                self.unresponsive_count = TOO_SLOW_THRESHOLD
+            if self.unresponsive_count > TOO_SLOW_THRESHOLD:
                 self.too_slow = True
 
         clear_q(self.aq)  # clear the queue from unhandled actions
@@ -103,3 +175,8 @@ def clear_q(q):
     while not q.empty():
         try: q.get_nowait()
         except queue.Empty: break
+
+
+
+
+

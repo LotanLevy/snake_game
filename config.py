@@ -2,10 +2,10 @@
 import sys
 import argparse
 import os
-
 from policies.Policy import Policy
 from policies import *
-import Constants
+
+from GameConfigurations import PLAYER_INIT_TIME
 
 
 
@@ -20,7 +20,7 @@ def parse_args():
 
 
     g = p.add_argument_group('Game')
-    g.add_argument('--board_size', '-bs', type=str, default='(20,20)', help='a tuple of (height, width)')
+    g.add_argument('--board_size', '-bs', type=str, default='(60,20)', help='a tuple of (height, width)')
     g.add_argument('--obstacle_density', '-od', type=float, default=.04, help='the density of obstacles on the board')
     g.add_argument('--policy_wait_time', '-pwt', type=float, default=0.01,
                    help='seconds to wait for policies to respond with actions')
@@ -35,7 +35,7 @@ def parse_args():
                    help='seconds to wait for agents to respond with actions')
     g.add_argument('--policy_learn_time', '-plt', type=float, default=0.1,
                    help='seconds to wait for agents to improve policy')
-    g.add_argument('--player_init_time', '-pit', type=float, default=Constants.PLAYER_INIT_TIME,
+    g.add_argument('--player_init_time', '-pit', type=float, default=PLAYER_INIT_TIME,
                    help='seconds to wait for agents to initialize in the beginning of the session')
     g.add_argument('--init_player_size', '-is', type=int, default=5, help='player length at start, minimum is 3')
 
