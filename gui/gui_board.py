@@ -28,6 +28,7 @@ class Board(Canvas):
         self.start_func = start_func
         self.obstacle_density = obstacle_density
 
+
         self.fruits_types = fruits_types
         self.board_items = 0
 
@@ -188,8 +189,7 @@ class Board(Canvas):
                 result = "food"
             snake.direction = direction
             will_grow = snake.move(new_pos, board_array)
-        # return new_pos, result, board_value, will_grow
-        return board_array, snake, new_pos, result
+        return new_pos, result, board_value, will_grow
 
     def update_scores(self, round, score_scope):
 
