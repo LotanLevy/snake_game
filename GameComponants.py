@@ -53,6 +53,17 @@ class Snake(HasScore):
             self.growing -= 1
             return True
 
+    def __deepcopy__(self, memodict={}):
+        new_snake = Snake(self.id, self.color, self.init_player_size)
+        new_snake.direction = self.direction
+        new_snake.growing = self.growing
+        new_snake.current_score = self.current_score
+        new_snake.all_scores = self.all_scores
+        new_snake.size = self.size
+        new_snake.positions = self.positions
+        new_snake.previous_head = self.previous_head
+
+
 
 
 

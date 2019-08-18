@@ -1,16 +1,27 @@
 from policies import Policy as bp
 import numpy as np
-from gui_board.snake_gui import Master
+from scipy.spatial import distance
+import copy
+from gui.gui_board import Board
 
 EPSILON = 0.001
 DISCOUNT_RATE = 0.1
 LEARNING_RATE = 0.1
 MY_INDEX = 0
 ADVERSARY_INDEX = 1
+
+ACTIONS = {
+    'N': (-1, 0),
+    'S': (1, 0),
+    'E': (0, 1),
+    'W': (0, -1),
+}
+
 #
 # FEATURES_NUM = 22
 #
 # OBJ_RANGE = np.arange(-1, 10)
+
 
 class Position:
 
@@ -41,11 +52,6 @@ class Position:
         position.board_size = self.board_size
         return position
 
-class Direction():
-    UP = 1
-    LEFT = 2
-    RIGHT = 3
-    STOP = 4
 
 class Minmax(bp.Policy):
     """
@@ -60,6 +66,10 @@ class Minmax(bp.Policy):
     def init_run(self):
         print("initiating minmax")
         self.r_sum = 0
+        for snake in self.snakes:
+            if snake.id != self.id:
+                self.adversary_id = snake.id
+                break
 
     def learn(self, round, prev_state, prev_action, reward, new_state, too_slow):
 
@@ -91,39 +101,38 @@ class Minmax(bp.Policy):
         # for now we use only one adversary
         print("min max \"act\" function is activated")
         indices_dict = dict()
-        print("my id is: ", self.id)
         indices_dict[MY_INDEX] = self.id
-        print("adversary is: ", self.adversaries_ids[0])
-        indices_dict[ADVERSARY_INDEX] = self.adversaries_ids[0]
+        indices_dict[ADVERSARY_INDEX] = self.adversary_id
+
         return self.minmax(new_state, 4, MY_INDEX, indices_dict)[1]
 
     def evaluation_function(self, state, indices_dict):
-        # returns the hamilton distance between the two snakes heads:
-        snake_1_head = state[1][0]     # gets the head of snake_1
-        snake_2_head = self.get_snake_head_position(state, ADVERSARY_INDEX, indices_dict)
-        dist = abs(snake_1_head[0] - snake_2_head[0]) + abs(snake_1_head[1] - snake_2_head[1])
+        """
+        by distance from the closest point to the current snake's head
+        :param state:
+        :param indices_dict:
+        :return:
+        """
+
+        head0 = state.snakes[indices_dict[MY_INDEX]].positions[-1]
+        head1 = state.snakes[indices_dict[ADVERSARY_INDEX]].positions[-1]
+
+        # hamilton distance:
+        dist = abs(head0[0] - head1[0]) + abs(head0[1] - head1[1])
+        # TODO: add attention to food dist etc...
         return dist
 
-    def get_some_body_part(self, state, snake_id):
-        """
-        returns some element from the snake's body parts
-        """
-        return np.where(state == snake_id)
-
-    def minmax(self, state, depth, player_index, indices_dict): #TODO: understand if it starts with 0 or 1. how to connect snake id to player index?
-
-        print("starting minmax step")
+    def minmax(self, state, depth, player_index, indices_dict):
 
         if depth == 0:
-            print("depth = 0")
-            return self.evaluation_function(state), Direction.STOP
+            return self.evaluation_function(state, indices_dict), 'F'
 
+        possible_actions = ['L', 'R', 'F']
+        successor_states = [self.generate_successor(player_index, state, indices_dict, action) for action in possible_actions]
 
-        available_directions = self.get_legal_actions(state)
-        successor_states = [self.generate_successor(player_index, state, indices_dict, direction) for direction in available_directions]
         scores = []
         for successor in successor_states:
-            result = self.minmax(successor, depth - 1, 1 - player_index)
+            result = self.minmax(successor, depth - 1, 1 - player_index, indices_dict)
             scores.append(result[0])
 
         if player_index == MY_INDEX:
@@ -131,87 +140,46 @@ class Minmax(bp.Policy):
         else:
             best_score_idx = np.argmin(np.array(scores))
 
-        return scores[best_score_idx], available_directions[best_score_idx]
+        return scores[best_score_idx], possible_actions[best_score_idx]
 
-    def generate_successor(self, player_index, state, indices_dict, direction):
+    def generate_successor(self, player_index, state, indices_dict, action):
         """
         creates a copy of the given game object, moves the current players' snake (0 or 1) by the given action
         :return: successor's game (after performing the action)
         """
-        print("Starting to generate successors")
-        # copy the game board
-        copied_state = self.copy_state(state)
-        print("state copying succeed")
         # do move - requires direction of the snake, snake's head and the board's borders
         # I used snake_gui.move_step because it will be a static method
 
-        board = self.apply_step_to_successor(copied_state, player_index, indices_dict, direction)
-        new_state = board, copied_state[1]
+        direction = bp.Policy.TURNS[state[1][1]][action]
+
+        board, new_snake, head_pos = self.apply_step_to_successor(state, player_index, indices_dict, direction)
+        new_state = board, (head_pos, direction)
         return new_state
 
-    def get_snake_head(self, state, player_index, indices_dict):
-        snake_head_position = self.get_snake_head_position(state, player_index, indices_dict)
-        snake_positions = np.where(state[0] == indices_dict[player_index])
-        tail_position = (0,0)
-        for (x, y) in snake_positions:
-             surrounding_positions = [((x-1)%20,y), ((x+1)%20,y), (x,(y+1)%20), (x, (y-1)%20)]
-             count_containments = 0
-             for (a,b) in surrounding_positions:
-                 if (a,b) in snake_positions:
-                     count_containments = count_containments + 1
-             if count_containments == 1:
-                 if (x, y) not in snake_head_position:
-                     tail_position = (x, y)
-        return tail_position
-
-    def get_snake_head_position(self, state, player_index, indices_dict):
-        current_board = state[0]
-        copied_state = self.copy_state(state)
-        board = self.apply_step_to_successor(copied_state, player_index, indices_dict, 'F')
-        new_coords = np.where(board == indices_dict[player_index])
-        current_coords = np.where(current_board == indices_dict[player_index])
-        head_position = (0, 0)
-        for (x, y) in new_coords:
-            if (x, y) not in current_coords:
-                head_position = (x, y)
-        return head_position
-
     def apply_step_to_successor(self, state, player_index, indices_dict, direction):
-        print("current board: ", state[0])
-        moved_head_coords = Master.move_step(direction, state[1][0].pos[0], state[1][0].pos[0], self.board_size)
-        state[0][moved_head_coords] = indices_dict[player_index]
-        print("board after applying step: ", state[0])
-        return state[0]
+        # copy the game board
+        copied_state = self.copy_state(state)
+        copied_snake = copy.deepcopy(copied_state.snakes[indices_dict[player_index]])
+        new_board, new_snake, head_pos = Board.move_snake(copied_snake, direction, copied_state,
+                                                                      copied_state[0].fruits_types)
+        return new_board, new_snake, head_pos
 
     def copy_state(self, state):
         new_position = Position.__copy__(state[1][0])
         head = (new_position, state[1][1])
-        new_state = state[0], head
+        board = np.array(state[0], copy=True)
+        new_state = board, head
         return new_state
 
     def get_legal_actions(self, state):
         direction = state[1][1]
         legal_directions = ['E', 'W', 'N', 'S']
         if direction == 'E':
-            legal_directions.remove('W')
+            legal_directions = ['E', 'N', 'S']
         elif direction == 'W':
-            legal_directions.remove('E')
+            legal_directions = ['W', 'N', 'S']
         elif direction == 'N':
-            legal_directions.remove('S')
+            legal_directions = ['E', 'W', 'N']
         elif direction == 'S':
-            legal_directions.remove('N')
+            legal_directions = ['E', 'W', 'S']
         return legal_directions
-
-
-    # #TODO: implement this func
-    # def apply_action(self, action):
-    #     pass
-    #
-    #     # move our snake according to the action
-    #     ####TODO: we need an access from the state (Game object) to the main player's snake,
-    #         # and to the other player's snake (and to know who is who)...
-    #
-    # # TODO: implement this func
-    # def apply_opponent_action(action):
-    #     pass
-    #     # move opponent snake according to the action
